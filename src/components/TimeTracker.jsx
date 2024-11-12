@@ -13,6 +13,18 @@ function TimeTracker({ fontColor, updateTrigger }) {
     Programming: 0,
     total: 0
   });
+  const [weekData, setWeekData] = useState({
+    Study: 0,
+    Programming: 0,
+    total: 0,
+    lastReset: null
+  });
+  const [monthData, setMonthData] = useState({
+    Study: 0,
+    Programming: 0,
+    total: 0,
+    lastReset: null
+  });
   const [selectedView, setSelectedView] = useState("Lifetime");
 
   useEffect(() => {
@@ -21,6 +33,48 @@ function TimeTracker({ fontColor, updateTrigger }) {
         const data = await syncData.getTimeTracker();
         
         if (data) {
+          // Use only default labels
+          const defaultLabels = ["Study", "Programming"];
+          
+          // Initialize timeData with default labels
+          const initialTimeData = {};
+          defaultLabels.forEach(label => {
+            initialTimeData[label] = parseInt(data.time_data?.[label]) || 0;
+          });
+          setTimeData(initialTimeData);
+
+          // Initialize lifeTimeData with default labels
+          const initialLifeTimeData = {
+            ...data.life_time_data,
+            total: parseInt(data.life_time_data?.total) || 0
+          };
+          defaultLabels.forEach(label => {
+            initialLifeTimeData[label] = parseInt(data.life_time_data?.[label]) || 0;
+          });
+          setLifeTimeData(initialLifeTimeData);
+
+          // Initialize week data with all available labels
+          const initialWeekData = {
+            ...data.week_data,
+            total: parseInt(data.week_data?.total) || 0,
+            lastReset: data.week_data?.lastReset
+          };
+          defaultLabels.forEach(label => {
+            initialWeekData[label] = parseInt(data.week_data?.[label]) || 0;
+          });
+          setWeekData(initialWeekData);
+
+          // Initialize month data with all available labels
+          const initialMonthData = {
+            ...data.month_data,
+            total: parseInt(data.month_data?.total) || 0,
+            lastReset: data.month_data?.lastReset
+          };
+          defaultLabels.forEach(label => {
+            initialMonthData[label] = parseInt(data.month_data?.[label]) || 0;
+          });
+          setMonthData(initialMonthData);
+
           // Check if we need to reset today's data
           const today = new Date().toDateString();
           if (data.last_reset_date !== today) {
@@ -56,7 +110,9 @@ function TimeTracker({ fontColor, updateTrigger }) {
               resetData.total_time,
               resetData.daily_history,
               resetData.life_time_data,
-              resetData.last_reset_date
+              resetData.last_reset_date,
+              data.week_data,
+              data.month_data
             );
 
             // Update local state
@@ -79,6 +135,64 @@ function TimeTracker({ fontColor, updateTrigger }) {
             Programming: parseInt(data.life_time_data?.Programming) || 0,
             total: parseInt(data.life_time_data?.total) || 0
           });
+
+          // Set week and month data
+          setWeekData(data.week_data || {
+            Study: 0,
+            Programming: 0,
+            total: 0,
+            lastReset: null
+          });
+          setMonthData(data.month_data || {
+            Study: 0,
+            Programming: 0,
+            total: 0,
+            lastReset: null
+          });
+
+          // Check for week reset (Thursday midnight)
+          const now = new Date();
+          const lastWeekReset = data.week_data?.lastReset ? new Date(data.week_data.lastReset) : null;
+          if (!lastWeekReset || now.getDay() === 5 && lastWeekReset.getDay() !== 5) {
+            const newWeekData = {
+              Study: 0,
+              Programming: 0,
+              total: 0,
+              lastReset: now.toISOString()
+            };
+            setWeekData(newWeekData);
+            await syncData.saveTimeTracker(
+              data.time_data,
+              data.total_time,
+              data.daily_history,
+              data.life_time_data,
+              data.last_reset_date,
+              newWeekData,
+              data.month_data
+            );
+          }
+
+          // Check for month reset
+          const currentMonth = now.getMonth();
+          const lastMonthReset = data.month_data?.lastReset ? new Date(data.month_data.lastReset) : null;
+          if (!lastMonthReset || currentMonth !== lastMonthReset.getMonth()) {
+            const newMonthData = {
+              Study: 0,
+              Programming: 0,
+              total: 0,
+              lastReset: now.toISOString()
+            };
+            setMonthData(newMonthData);
+            await syncData.saveTimeTracker(
+              data.time_data,
+              data.total_time,
+              data.daily_history,
+              data.life_time_data,
+              data.last_reset_date,
+              data.week_data,
+              newMonthData
+            );
+          }
         }
       } catch (error) {
         console.error('Error loading time tracker data:', error);
@@ -182,6 +296,8 @@ function TimeTracker({ fontColor, updateTrigger }) {
         }}
       >
         <option value="Lifetime">Lifetime Stats</option>
+        <option value="ThisWeek">This Week</option>
+        <option value="ThisMonth">This Month</option>
         <option value="History">Previous Days</option>
       </select>
 
@@ -191,6 +307,30 @@ function TimeTracker({ fontColor, updateTrigger }) {
           <p>Total Time: {formatTime(lifeTimeData.total)}</p>
           {Object.entries(lifeTimeData).map(([label, time]) => (
             label !== 'total' && (
+              <div key={label}>
+                <span>{label}: {formatTime(time)}</span>
+              </div>
+            )
+          ))}
+        </div>
+      ) : selectedView === "ThisWeek" ? (
+        <div className="week-stats" style={{ marginTop: '20px' }}>
+          <h4>This Week</h4>
+          <p>Total Time: {formatTime(weekData.total)}</p>
+          {Object.entries(weekData).map(([label, time]) => (
+            label !== 'total' && label !== 'lastReset' && (
+              <div key={label}>
+                <span>{label}: {formatTime(time)}</span>
+              </div>
+            )
+          ))}
+        </div>
+      ) : selectedView === "ThisMonth" ? (
+        <div className="month-stats" style={{ marginTop: '20px' }}>
+          <h4>This Month</h4>
+          <p>Total Time: {formatTime(monthData.total)}</p>
+          {Object.entries(monthData).map(([label, time]) => (
+            label !== 'total' && label !== 'lastReset' && (
               <div key={label}>
                 <span>{label}: {formatTime(time)}</span>
               </div>

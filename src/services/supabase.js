@@ -71,7 +71,7 @@ export const syncData = {
     }
   },
 
-  async saveTimeTracker(timeData, totalTime, dailyHistory, lifeTimeData, lastResetDate) {
+  async saveTimeTracker(timeData, totalTime, dailyHistory, lifeTimeData, lastResetDate, weekData, monthData) {
     const userId = generateUserId();
     await supabase
       .from('time_tracker')
@@ -81,7 +81,9 @@ export const syncData = {
         total_time: totalTime,
         daily_history: dailyHistory,
         life_time_data: lifeTimeData,
-        last_reset_date: lastResetDate || new Date().toDateString()
+        last_reset_date: lastResetDate || new Date().toDateString(),
+        week_data: weekData,
+        month_data: monthData
       }, { onConflict: 'user_id' });
   },
 
@@ -178,4 +180,24 @@ export const syncData = {
       };
     }
   },
+
+  async getUserLabels() {
+    try {
+      const userId = generateUserId();
+      const { data, error } = await supabase
+        .from('user_labels')
+        .select('labels')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      return ["Study", "Programming"];
+    } catch (error) {
+      console.error('Error getting user labels:', error);
+      return ["Study", "Programming"];
+    }
+  }
 }; 

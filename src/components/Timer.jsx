@@ -263,6 +263,26 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
       const timeTrackerData = await syncData.getTimeTracker();
       const durationSeconds = Math.floor(parseFloat(durationMinutes) * 60);
 
+      // Update week data
+      const weekData = timeTrackerData?.week_data || {
+        Study: 0,
+        Programming: 0,
+        total: 0,
+        lastReset: new Date().toISOString()
+      };
+      weekData[label] = (weekData[label] || 0) + durationSeconds;
+      weekData.total += durationSeconds;
+
+      // Update month data
+      const monthData = timeTrackerData?.month_data || {
+        Study: 0,
+        Programming: 0,
+        total: 0,
+        lastReset: new Date().toISOString()
+      };
+      monthData[label] = (monthData[label] || 0) + durationSeconds;
+      monthData.total += durationSeconds;
+
       // Today's data
       let currentTimeData = {
         Study: parseInt(timeTrackerData?.time_data?.Study) || 0,
@@ -319,13 +339,17 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
         currentTotalTime,
         timeTrackerData?.daily_history || [],
         lifeTimeData,
-        today // Update last_reset_date to today
+        today,
+        weekData,
+        monthData
       );
 
       console.log('Saved time data:', {
         timeData: currentTimeData,
         totalTime: currentTotalTime,
-        lifeTimeData: lifeTimeData
+        lifeTimeData: lifeTimeData,
+        weekData: weekData,
+        monthData: monthData
       });
       
     } catch (error) {
