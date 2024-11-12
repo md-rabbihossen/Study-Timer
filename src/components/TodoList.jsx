@@ -1,49 +1,65 @@
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { PlusCircleIcon } from '@heroicons/react/24/outline';
 import { v4 as uuidv4 } from 'uuid';
 import { syncData } from '../services/supabase';
 
 function TodoList({ fontColor, backgroundColor, onUpdate }) {
   const [todos, setTodos] = useState([]);
   const [newTodo, setNewTodo] = useState('');
-  const [totalDayTasks, setTotalDayTasks] = useState(0);
-  const [completedTasks, setCompletedTasks] = useState(0);
+  const [dailyStats, setDailyStats] = useState({
+    totalTasks: 0,
+    completedTasks: 0,
+    lastResetDate: new Date().toDateString(),
+    lastPercentage: 0
+  });
+
+  const calculatePercentage = () => {
+    if (dailyStats.totalTasks === 0) return 0;
+    return Math.round((dailyStats.completedTasks / dailyStats.totalTasks) * 100);
+  };
 
   useEffect(() => {
-    // Initial load
-    syncData.getTodos().then((todos) => {
+    syncData.getTodos().then(({ todos, dailyStats }) => {
       setTodos(todos);
-      setTotalDayTasks(todos.length);
-      setCompletedTasks(todos.filter(todo => todo.completed).length);
+      const today = new Date().toDateString();
+      
+      if (dailyStats.lastResetDate === today) {
+        setDailyStats(dailyStats);
+      } else {
+        const newStats = {
+          totalTasks: todos.length,
+          completedTasks: 0,
+          lastResetDate: today,
+          lastPercentage: 0
+        };
+        setDailyStats(newStats);
+        syncData.saveTodos(todos, newStats);
+      }
+    }).catch(error => {
+      console.error('Error loading todos:', error);
     });
 
-    // Subscribe to changes
     const subscription = syncData.subscribeToTodos((newTodos) => {
       setTodos(newTodos);
       localStorage.setItem('todos', JSON.stringify(newTodos));
     });
-
-    // Reset at midnight
-    const resetPercentageAtMidnight = () => {
-      const now = new Date();
-      const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0) - now;
-      setTimeout(() => {
-        setTotalDayTasks(todos.length);
-        resetPercentageAtMidnight();
-      }, msUntilMidnight);
-    };
-    resetPercentageAtMidnight();
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  const calculatePercentage = () => {
-    if (totalDayTasks === 0) return 0;
-    return Math.round((completedTasks / totalDayTasks) * 100);
-  };
+  useEffect(() => {
+    const today = new Date().toDateString();
+    if (dailyStats.lastResetDate !== today) {
+      setDailyStats({
+        totalTasks: todos.length,
+        completedTasks: 0,
+        lastResetDate: today,
+        lastPercentage: 0
+      });
+    }
+  }, [todos]);
 
   const handleAddTodo = async (e) => {
     e.preventDefault();
@@ -55,34 +71,41 @@ function TodoList({ fontColor, backgroundColor, onUpdate }) {
       completed: false
     }];
 
+    const newTotal = updatedTodos.length;
+    const currentPercentage = Math.round((dailyStats.completedTasks / newTotal) * 100);
+
+    const newStats = {
+      ...dailyStats,
+      totalTasks: newTotal,
+      lastPercentage: currentPercentage
+    };
+
     setTodos(updatedTodos);
-    setTotalDayTasks(prev => prev + 1);
-    await syncData.saveTodos(updatedTodos);
+    setDailyStats(newStats);
+    await syncData.saveTodos(updatedTodos, newStats);
     setNewTodo('');
   };
 
   const handleToggleTodo = async (id) => {
     try {
-      // First update the local state
       const updatedTodos = todos.map(todo =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       );
-      
-      setTodos(updatedTodos);
-      // Update completed tasks count
-      setCompletedTasks(updatedTodos.filter(todo => todo.completed).length);
-      
-      // Save to database
-      await syncData.saveTodos(updatedTodos);
 
-      // After 500ms, remove completed tasks
-      setTimeout(async () => {
-        const filteredTodos = updatedTodos.filter(todo => !todo.completed);
-        setTodos(filteredTodos);
-        setTotalDayTasks(filteredTodos.length); // Update total tasks count
-        setCompletedTasks(0); // Reset completed tasks count
-        await syncData.saveTodos(filteredTodos);
-      }, 500);
+      const completedCount = updatedTodos.filter(todo => todo.completed).length;
+      const totalTasksCount = updatedTodos.length;
+      const currentPercentage = Math.round((completedCount / totalTasksCount) * 100);
+
+      const newStats = {
+        ...dailyStats,
+        completedTasks: completedCount,
+        totalTasks: totalTasksCount,
+        lastPercentage: currentPercentage
+      };
+
+      setTodos(updatedTodos);
+      setDailyStats(newStats);
+      await syncData.saveTodos(updatedTodos, newStats);
     } catch (error) {
       console.error('Error toggling todo:', error);
     }
@@ -110,7 +133,7 @@ function TodoList({ fontColor, backgroundColor, onUpdate }) {
       <h2 className="todo-title">To Do</h2>
       
       <div className="todo-progress" style={{ color: fontColor }}>
-        <span>{calculatePercentage()}% Complete</span>
+        <span>Completed {calculatePercentage()}%</span>
         <div 
           className="progress-bar" 
           style={{ 
@@ -184,4 +207,4 @@ function TodoList({ fontColor, backgroundColor, onUpdate }) {
   );
 }
 
-export default TodoList; 
+export default TodoList;

@@ -16,14 +16,15 @@ export const generateUserId = () => {
 };
 
 export const syncData = {
-  async saveTodos(todos) {
+  async saveTodos(todos, dailyStats) {
     try {
       const userId = generateUserId();
       const { data, error } = await supabase
         .from('todos')
         .upsert({
           user_id: userId,
-          todos: todos
+          todos: todos,
+          daily_stats: dailyStats
         }, { onConflict: 'user_id' });
 
       if (error) throw error;
@@ -39,7 +40,7 @@ export const syncData = {
       const userId = generateUserId();
       const { data, error } = await supabase
         .from('todos')
-        .select('todos')
+        .select('todos, daily_stats')
         .eq('user_id', userId)
         .single();
 
@@ -47,10 +48,26 @@ export const syncData = {
         throw error;
       }
 
-      return data?.todos || [];
+      return {
+        todos: data?.todos || [],
+        dailyStats: data?.daily_stats || {
+          totalTasks: 0,
+          completedTasks: 0,
+          lastResetDate: new Date().toDateString(),
+          lastPercentage: 0
+        }
+      };
     } catch (error) {
       console.error('Error getting todos:', error);
-      return [];
+      return { 
+        todos: [], 
+        dailyStats: {
+          totalTasks: 0,
+          completedTasks: 0,
+          lastResetDate: new Date().toDateString(),
+          lastPercentage: 0
+        }
+      };
     }
   },
 
@@ -90,7 +107,12 @@ export const syncData = {
           table: 'todos',
           filter: `user_id=eq.${userId}`
         },
-        (payload) => callback(payload.new?.todos || [])
+        (payload) => {
+          callback({
+            todos: payload.new?.todos || [],
+            daily_stats: payload.new?.daily_stats
+          });
+        }
       )
       .subscribe();
   },
