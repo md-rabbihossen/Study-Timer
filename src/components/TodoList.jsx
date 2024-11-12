@@ -7,11 +7,16 @@ import { syncData } from '../services/supabase';
 function TodoList({ fontColor, backgroundColor, onUpdate }) {
   const [todos, setTodos] = useState([]);
   const [newTodo, setNewTodo] = useState('');
-  const [updateTrigger, setUpdateTrigger] = useState(0);
+  const [totalDayTasks, setTotalDayTasks] = useState(0);
+  const [completedTasks, setCompletedTasks] = useState(0);
 
   useEffect(() => {
     // Initial load
-    syncData.getTodos().then(setTodos);
+    syncData.getTodos().then((todos) => {
+      setTodos(todos);
+      setTotalDayTasks(todos.length);
+      setCompletedTasks(todos.filter(todo => todo.completed).length);
+    });
 
     // Subscribe to changes
     const subscription = syncData.subscribeToTodos((newTodos) => {
@@ -19,10 +24,26 @@ function TodoList({ fontColor, backgroundColor, onUpdate }) {
       localStorage.setItem('todos', JSON.stringify(newTodos));
     });
 
+    // Reset at midnight
+    const resetPercentageAtMidnight = () => {
+      const now = new Date();
+      const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0) - now;
+      setTimeout(() => {
+        setTotalDayTasks(todos.length);
+        resetPercentageAtMidnight();
+      }, msUntilMidnight);
+    };
+    resetPercentageAtMidnight();
+
     return () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  const calculatePercentage = () => {
+    if (totalDayTasks === 0) return 0;
+    return Math.round((completedTasks / totalDayTasks) * 100);
+  };
 
   const handleAddTodo = async (e) => {
     e.preventDefault();
@@ -35,23 +56,36 @@ function TodoList({ fontColor, backgroundColor, onUpdate }) {
     }];
 
     setTodos(updatedTodos);
+    setTotalDayTasks(prev => prev + 1);
     await syncData.saveTodos(updatedTodos);
     setNewTodo('');
   };
 
   const handleToggleTodo = async (id) => {
-    const updatedTodos = todos.map(todo =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    );
-    
-    setTodos(updatedTodos);
-    await syncData.saveTodos(updatedTodos);
+    try {
+      // First update the local state
+      const updatedTodos = todos.map(todo =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      );
+      
+      setTodos(updatedTodos);
+      // Update completed tasks count
+      setCompletedTasks(updatedTodos.filter(todo => todo.completed).length);
+      
+      // Save to database
+      await syncData.saveTodos(updatedTodos);
 
-    setTimeout(async () => {
-      const filteredTodos = updatedTodos.filter(todo => !todo.completed);
-      setTodos(filteredTodos);
-      await syncData.saveTodos(filteredTodos);
-    }, 500);
+      // After 500ms, remove completed tasks
+      setTimeout(async () => {
+        const filteredTodos = updatedTodos.filter(todo => !todo.completed);
+        setTodos(filteredTodos);
+        setTotalDayTasks(filteredTodos.length); // Update total tasks count
+        setCompletedTasks(0); // Reset completed tasks count
+        await syncData.saveTodos(filteredTodos);
+      }, 500);
+    } catch (error) {
+      console.error('Error toggling todo:', error);
+    }
   };
 
   const handleDragEnd = (result) => {
@@ -74,6 +108,21 @@ function TodoList({ fontColor, backgroundColor, onUpdate }) {
       }}
     >
       <h2 className="todo-title">To Do</h2>
+      
+      <div className="todo-progress" style={{ color: fontColor }}>
+        <span>{calculatePercentage()}% Complete</span>
+        <div 
+          className="progress-bar" 
+          style={{ 
+            backgroundColor: fontColor,
+            width: `${calculatePercentage()}%`,
+            height: '4px',
+            borderRadius: '2px',
+            marginTop: '4px',
+            transition: 'width 0.3s ease'
+          }} 
+        />
+      </div>
       
       <form 
         onSubmit={handleAddTodo} 
@@ -109,47 +158,22 @@ function TodoList({ fontColor, backgroundColor, onUpdate }) {
               ref={provided.innerRef}
               className="todo-list"
             >
-              {todos.map((todo, index) => (
-                <Draggable 
-                  key={todo.id} 
-                  draggableId={todo.id} 
-                  index={index}
-                  type="TASK"
+              {todos.map((todo) => (
+                <li
+                  key={todo.id}
+                  className={`todo-item ${todo.completed ? 'completed' : ''}`}
+                  style={{ borderColor: fontColor }}
                 >
-                  {(provided, snapshot) => (
-                    <li
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      className={`todo-item ${snapshot.isDragging ? 'dragging' : ''} ${
-                        todo.completed ? 'completed' : ''
-                      }`}
-                      style={{ 
-                        ...provided.draggableProps.style,
-                        borderColor: fontColor,
-                        color: fontColor
-                      }}
-                    >
-                      <label className="todo-checkbox-container">
-                        <label className="custom-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={todo.completed}
-                            onChange={() => handleToggleTodo(todo.id)}
-                          />
-                          <span 
-                            className="checkmark" 
-                            style={{ 
-                              borderColor: fontColor,
-                              backgroundColor: todo.completed ? backgroundColor : 'transparent'
-                            }}
-                          />
-                        </label>
-                        <span className="todo-text">{todo.text}</span>
-                      </label>
-                    </li>
-                  )}
-                </Draggable>
+                  <label className="todo-label">
+                    <input
+                      type="checkbox"
+                      checked={todo.completed}
+                      onChange={() => handleToggleTodo(todo.id)}
+                      className="todo-checkbox"
+                    />
+                    <span className="todo-text">{todo.text}</span>
+                  </label>
+                </li>
               ))}
               {provided.placeholder}
             </ul>

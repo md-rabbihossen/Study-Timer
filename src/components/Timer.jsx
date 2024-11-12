@@ -1,34 +1,57 @@
 import { useState, useEffect, useRef } from 'react';
-import toast from 'react-hot-toast';
 import alarmSound from '../assets/Digital Timer.mp3';
 import CurrentTime from './CurrentTime';
 import { syncData } from '../services/supabase';
 function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessionComplete, user, onUpdate }) {
+  // State variables
   const [timeLeft, setTimeLeft] = useState(45);
   const [seconds, setSeconds] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [hours, setHours] = useState("0");
   const [minutes, setMinutes] = useState("45");
-  const [selectedLabel, setSelectedLabel] = useState("Study"); // Default label
+  const [selectedLabel, setSelectedLabel] = useState("Study");
   const [backgroundImage, setBackgroundImage] = useState('');
-  const [timerWorkerRef, setTimerWorkerRef] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Initialize refs
   const audioRef = useRef(new Audio(alarmSound));
   const initialTimeRef = useRef(0);
+  const timerRef = useRef(null);
   const timerContainerRef = useRef(null);
-  const [isFullscreen, setIsFullscreen] = useState(false); // State for fullscreen
+  const isTimerCompletedRef = useRef(false); // Add ref to track if timer completed
 
   const labels = ["Study", "Programming"]; // Available labels
 
+  // Initialize activeLabel ref with the default value
+  const activeLabel = useRef(selectedLabel);
+
+  // Add useEffect to update activeLabel when selectedLabel changes
+  useEffect(() => {
+    activeLabel.current = selectedLabel;
+  }, [selectedLabel]);
+
+  // Add this function to update document title
+  const updateDocumentTitle = (time) => {
+    if (!isPaused && timerRef.current) {
+      document.title = `${time} - ${selectedLabel} | Study Timer`;
+    } else {
+      document.title = 'Study Timer';
+    }
+  };
+
   const formatTime = () => {
+    let formattedTime;
     if (showSeconds) {
       const displayHours = Math.floor(timeLeft / 60);
       const displayMinutes = timeLeft % 60;
-      return `${String(displayHours).padStart(2, '0')}:${String(displayMinutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      formattedTime = `${String(displayHours).padStart(2, '0')}:${String(displayMinutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     } else {
       const displayHours = Math.floor(timeLeft / 60);
       const displayMinutes = timeLeft % 60;
-      return `${String(displayHours).padStart(2, '0')}:${String(displayMinutes).padStart(2, '0')}`;
+      formattedTime = `${String(displayHours).padStart(2, '0')}:${String(displayMinutes).padStart(2, '0')}`;
     }
+    updateDocumentTitle(formattedTime);
+    return formattedTime;
   };
 
   const handleTimeInput = (e, type) => {
@@ -43,68 +66,125 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
 
     if (e.key === 'Enter') {
       e.preventDefault();
-      startTimer();
+      const totalMinutes = (parseInt(hours) || 0) * 60 + (parseInt(minutes) || 0);
+      if (totalMinutes > 0) {
+        startTimer();
+      }
     }
   };
 
   const startTimer = () => {
-    if (!isPaused) {
+    if (!timerRef.current && !isPaused) {
       const totalMinutes = (parseInt(hours) || 0) * 60 + (parseInt(minutes) || 0);
       if (totalMinutes <= 0) {
-        toast('Please enter a valid time', toastStyle);
         return;
       }
+      activeLabel.current = selectedLabel;
       initialTimeRef.current = totalMinutes;
-      toast('Timer Started! ▶️', toastStyle);
       setTimeLeft(totalMinutes);
       setSeconds(0);
-    } else {
-      toast('Timer Resumed! ▶️', toastStyle);
+      isTimerCompletedRef.current = false; // Reset completion flag
+
+      setHours(String(Math.floor(totalMinutes / 60)));
+      setMinutes(String(totalMinutes % 60));
+      console.log('Timer started with label:', activeLabel.current);
     }
 
-    timerWorkerRef.postMessage({ command: 'start' });
+    if (!timerRef.current) {
+      if (showSeconds) {
+        timerRef.current = setInterval(() => {
+          setSeconds(prev => {
+            if (prev === 0) {
+              setTimeLeft(prevTime => {
+                if (prevTime <= 0) {
+                  if (!isTimerCompletedRef.current) {
+                    handleTimerComplete();
+                    isTimerCompletedRef.current = true;
+                  }
+                  return 0;
+                }
+                return prevTime - 1;
+              });
+              return 59;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        timerRef.current = setInterval(() => {
+          setTimeLeft(prev => {
+            if (prev <= 0) {
+              if (!isTimerCompletedRef.current) {
+                handleTimerComplete();
+                isTimerCompletedRef.current = true;
+              }
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 60000);
+      }
+    }
     setIsPaused(false);
   };
 
   const pauseTimer = () => {
-    timerWorkerRef.postMessage({ command: 'stop' });
-    setIsPaused(true);
-    toast('Timer Paused! ⏸️', toastStyle);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+      setIsPaused(true);
+    }
   };
 
-  const resetTimer = () => {
-    if (!isPaused) {
-      const elapsedMinutes = initialTimeRef.current - timeLeft - (seconds / 60);
-      if (elapsedMinutes > 0) {
-        saveSession(elapsedMinutes);
+  const resetTimer = async () => {
+    const elapsedMinutes = initialTimeRef.current - timeLeft - (seconds / 60);
+    
+    if (timerRef.current && elapsedMinutes > 0 && !isTimerCompletedRef.current) {
+      try {
+        await saveSession(elapsedMinutes, activeLabel.current);
+        console.log('Reset timer - saving session:', { 
+          elapsedMinutes, 
+          label: activeLabel.current 
+        });
+      } catch (error) {
+        console.error('Error saving session on reset:', error);
       }
     }
 
-    timerWorkerRef.postMessage({ command: 'stop' });
-    setTimeLeft(30);
+    clearInterval(timerRef.current);
+    timerRef.current = null;
+    
+    setTimeLeft(45);
     setSeconds(0);
     setIsPaused(false);
     setHours("0");
-    setMinutes("30");
+    setMinutes("45");
     stopAlarm();
-    toast('Timer Reset! 🔄', toastStyle);
+    document.title = 'Study Timer';
+    isTimerCompletedRef.current = false;
   };
 
-  const handleTimerComplete = () => {
-    timerWorkerRef.postMessage({ command: 'stop' });
+  const handleTimerComplete = async () => {
+    if (isTimerCompletedRef.current) return;
+    
+    clearInterval(timerRef.current);
+    timerRef.current = null;
     
     const duration = initialTimeRef.current;
-    saveSession(duration);
-    
+    await saveSession(duration, activeLabel.current);
+    isTimerCompletedRef.current = true;
+
+    setTimeLeft(0);
+    setSeconds(0);
+    setHours("0");
+    setMinutes("0");
+    setIsPaused(true);
+
     if (soundEnabled) {
       playAlarm();
     }
-    
-    toast('Time\'s Up! ⏰', {
-      ...toastStyle,
-      duration: 5000,
-      icon: '✨',
-    });
+
+    document.title = 'Timer Complete!';
   };
 
   const playAlarm = () => {
@@ -125,33 +205,27 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
     audioRef.current.currentTime = 0;
   };
 
-  const saveSession = (duration, label) => {
-    const newSession = {
-      date: new Date().toISOString(),
-      duration: duration,
-      label: label
-    };
-    
-    const savedSessions = JSON.parse(localStorage.getItem('timerSessions') || '[]');
-    const updatedSessions = [...savedSessions, newSession];
-    localStorage.setItem('timerSessions', JSON.stringify(updatedSessions));
-    
-    if (user && onUpdate) {
-      onUpdate('timerSessions', { sessions: updatedSessions });
-    }
-    
-    if (onSessionComplete) {
-      onSessionComplete(duration);
-    }
-  };
+  const saveSession = async (duration, label) => {
+    try {
+      if (duration <= 0) return; // Don't save if duration is 0 or negative
+      
+      const newSession = {
+        date: new Date().toISOString(),
+        duration: duration,
+        label: label
+      };
 
-  const toastStyle = {
-    style: {
-      background: backgroundColor,
-      color: fontColor,
-      border: `1px solid ${fontColor}`,
-    },
-    duration: 2000,
+      // Track time
+      await onTimeTracked(label, duration);
+      
+      if (onSessionComplete) {
+        onSessionComplete();
+      }
+
+      console.log('Session saved:', { duration, label });
+    } catch (error) {
+      console.error('Error saving session:', error);
+    }
   };
 
   const toggleFullscreen = () => {
@@ -263,8 +337,8 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
     audioRef.current.volume = 0.5;
     return () => {
       stopAlarm();
-      if (timerWorkerRef) {
-        timerWorkerRef.terminate();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
       }
     };
   }, []);
@@ -281,7 +355,7 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
 
       if (e.code === 'Space') {
         e.preventDefault();
-        if (timerWorkerRef) {
+        if (timerRef.current) {
           pauseTimer();
         } else if (isPaused) {
           startTimer();
@@ -337,49 +411,10 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
     loadBackgroundImage();
   }, [isFullscreen]);
 
+  // Add cleanup effect for document title
   useEffect(() => {
-    const worker = new Worker(new URL('../timerWorker.js', import.meta.url));
-    setTimerWorkerRef(worker);
-    
-    worker.onmessage = (e) => {
-      if (e.data === 'tick') {
-        if (showSeconds) {
-          setSeconds(prev => {
-            if (prev === 0) {
-              setTimeLeft(prevTime => {
-                if (prevTime <= 0) {
-                  handleTimerComplete();
-                  return 0;
-                }
-                return prevTime - 1;
-              });
-              return 59;
-            }
-            return prev - 1;
-          });
-        } else {
-          setTimeLeft(prev => {
-            if (prev <= 0) {
-              handleTimerComplete();
-              return 0;
-            }
-            return prev - 1;
-          });
-        }
-      }
-    };
-
-    return () => worker.terminate();
-  }, [showSeconds]);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.title = 'Study Timer'; // Reset title when component unmounts
     };
   }, []);
 

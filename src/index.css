@@ -297,6 +297,7 @@ select {
   border: 1px solid;
   border-color: inherit;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .todo-item.dragging {
@@ -304,9 +305,15 @@ select {
 }
 
 .todo-item.completed {
-  opacity: 0.5;
-  text-decoration: line-through;
-  animation: fadeOut 0.5s ease forwards;
+  opacity: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  transform: translateX(-100%);
+  transition: all 0.5s ease;
+  pointer-events: none;
+  position: absolute;
 }
 
 .todo-label {
@@ -330,6 +337,10 @@ select {
 @keyframes fadeOut {
   to {
     opacity: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
     transform: translateX(-100%);
   }
 }
@@ -1421,4 +1432,12 @@ body {
     font-weight: lighter !important;
     opacity: 0.5;
   }
+}
+.todo-progress {
+  margin: 10px 0;
+}
+
+.progress-bar {
+  background-color: currentColor;
+  transition: width 0.3s ease;
 }

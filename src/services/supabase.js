@@ -17,20 +17,41 @@ export const generateUserId = () => {
 
 export const syncData = {
   async saveTodos(todos) {
-    const userId = generateUserId();
-    await supabase
-      .from('todos')
-      .upsert({ user_id: userId, todos }, { onConflict: 'user_id' });
+    try {
+      const userId = generateUserId();
+      const { data, error } = await supabase
+        .from('todos')
+        .upsert({
+          user_id: userId,
+          todos: todos
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving todos:', error);
+      throw error;
+    }
   },
 
   async getTodos() {
-    const userId = generateUserId();
-    const { data } = await supabase
-      .from('todos')
-      .select('todos')
-      .eq('user_id', userId)
-      .single();
-    return data?.todos || [];
+    try {
+      const userId = generateUserId();
+      const { data, error } = await supabase
+        .from('todos')
+        .select('todos')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      return data?.todos || [];
+    } catch (error) {
+      console.error('Error getting todos:', error);
+      return [];
+    }
   },
 
   async saveTimeTracker(timeData, totalTime, dailyHistory, lifeTimeData, lastResetDate) {
