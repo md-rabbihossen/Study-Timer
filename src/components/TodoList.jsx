@@ -20,20 +20,22 @@ function TodoList({ fontColor, backgroundColor, onUpdate }) {
 
   useEffect(() => {
     syncData.getTodos().then(({ todos, dailyStats }) => {
-      setTodos(todos);
       const today = new Date().toDateString();
       
       if (dailyStats.lastResetDate === today) {
+        setTodos(todos);
         setDailyStats(dailyStats);
       } else {
+        const incompleteTodos = todos.filter(todo => !todo.completed);
         const newStats = {
-          totalTasks: todos.length,
+          totalTasks: incompleteTodos.length,
           completedTasks: 0,
           lastResetDate: today,
           lastPercentage: 0
         };
+        setTodos(incompleteTodos);
         setDailyStats(newStats);
-        syncData.saveTodos(todos, newStats);
+        syncData.saveTodos(incompleteTodos, newStats);
       }
     }).catch(error => {
       console.error('Error loading todos:', error);
@@ -52,8 +54,10 @@ function TodoList({ fontColor, backgroundColor, onUpdate }) {
   useEffect(() => {
     const today = new Date().toDateString();
     if (dailyStats.lastResetDate !== today) {
+      const incompleteTodos = todos.filter(todo => !todo.completed);
+      setTodos(incompleteTodos);
       setDailyStats({
-        totalTasks: todos.length,
+        totalTasks: incompleteTodos.length,
         completedTasks: 0,
         lastResetDate: today,
         lastPercentage: 0
@@ -72,11 +76,13 @@ function TodoList({ fontColor, backgroundColor, onUpdate }) {
     }];
 
     const newTotal = updatedTodos.length;
-    const currentPercentage = Math.round((dailyStats.completedTasks / newTotal) * 100);
+    const completedCount = updatedTodos.filter(todo => todo.completed).length;
+    const currentPercentage = Math.round((completedCount / newTotal) * 100);
 
     const newStats = {
       ...dailyStats,
       totalTasks: newTotal,
+      completedTasks: completedCount,
       lastPercentage: currentPercentage
     };
 
@@ -133,7 +139,12 @@ function TodoList({ fontColor, backgroundColor, onUpdate }) {
       <h2 className="todo-title">To Do</h2>
       
       <div className="todo-progress" style={{ color: fontColor }}>
-        <span>Completed {calculatePercentage()}%</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Completed {calculatePercentage()}%</span>
+          <span style={{ fontSize: '0.9em', opacity: '0.8' }}>
+            {todos.filter(todo => !todo.completed).length}
+          </span>
+        </div>
         <div 
           className="progress-bar" 
           style={{ 

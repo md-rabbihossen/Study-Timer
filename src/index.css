@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400&display=swap');
+
 body {
   display: flex;
   align-items: center;
@@ -32,18 +34,24 @@ body {
 }
 
 #clock {
-  font-size: 150px;
+  font-size: 1px !important;
   text-align: center;
-  font-family: "Karla", sans-serif;
+  font-family: 'Roboto', sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
+  font-weight: 200;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #timer {
   font-weight: lighter !important;
   display: inline-block;
+  font-size: 80px !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #minutes-input {
@@ -514,10 +522,12 @@ select {
   top: 50%;
   transform: translateY(-50%);
   width: 300px;
+  max-height: 80vh;
   padding: 20px;
   border-radius: 8px;
   backdrop-filter: blur(8px);
   z-index: 10;
+  overflow-y: auto;
 }
 
 .tracker-title {
@@ -1215,12 +1225,6 @@ body {
   max-width: 600px;
 }
 
-#timer {
-  font-size: clamp(3rem, 10vw, rem);
-  font-weight: 10;
-  letter-spacing: 2px;
-  margin: 1rem 0;
-}
 
 .time-input-container {
   display: flex;
@@ -1391,7 +1395,7 @@ body {
 #clock:fullscreen #timer,
 #clock:fullscreen .current-time {
   font-weight: lighter !important;
-  letter-spacing: 5px !important;
+  letter-spacing: 0px !important;
   opacity: 0.5 !important;
   text-shadow: 0 0 10px rgba(214, 208, 208, 0.1);
 }
@@ -1404,7 +1408,7 @@ body {
 #clock:fullscreen #timer-title,
 #clock:fullscreen .time-input-label,
 #clock:fullscreen select {
-  font-weight: 200 !important;
+  font-weight: lighter !important;
   opacity: 0.0;
 }
 
@@ -1441,3 +1445,19 @@ body {
   background-color: currentColor;
   transition: width 0.3s ease;
 }
+
+/* Scrollbar styling for time tracker */
+.time-tracker::-webkit-scrollbar {
+  width: 6px;
+}
+
+.time-tracker::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.time-tracker::-webkit-scrollbar-thumb {
+  background: currentColor;
+  opacity: 0.2;
+  border-radius: 3px;
+}
+

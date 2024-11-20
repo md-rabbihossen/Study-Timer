@@ -5,27 +5,31 @@ function TimeTracker({ fontColor, updateTrigger }) {
   const [timeData, setTimeData] = useState({
     Study: 0,
     Programming: 0,
+    IBA: 0,
   });
   const [totalTime, setTotalTime] = useState(0);
   const [dailyHistory, setDailyHistory] = useState([]);
   const [lifeTimeData, setLifeTimeData] = useState({
     Study: 0,
     Programming: 0,
+    IBA: 0,
     total: 0
   });
   const [weekData, setWeekData] = useState({
     Study: 0,
     Programming: 0,
+    IBA: 0,
     total: 0,
     lastReset: null
   });
   const [monthData, setMonthData] = useState({
     Study: 0,
     Programming: 0,
+    IBA: 0,
     total: 0,
     lastReset: null
   });
-  const [selectedView, setSelectedView] = useState("Lifetime");
+  const [selectedView, setSelectedView] = useState("ThisWeek");
 
   useEffect(() => {
     const loadTimeTrackerData = async () => {
@@ -33,8 +37,8 @@ function TimeTracker({ fontColor, updateTrigger }) {
         const data = await syncData.getTimeTracker();
         
         if (data) {
-          // Use only default labels
-          const defaultLabels = ["Study", "Programming"];
+          // Use default labels including IBA
+          const defaultLabels = ["Study", "Programming", "IBA"];
           
           // Initialize timeData with default labels
           const initialTimeData = {};
@@ -85,6 +89,7 @@ function TimeTracker({ fontColor, updateTrigger }) {
               timeData: {
                 Study: parseInt(data.time_data?.Study) || 0,
                 Programming: parseInt(data.time_data?.Programming) || 0,
+                IBA: parseInt(data.time_data?.IBA) || 0,
               },
               totalTime: parseInt(data.total_time) || 0
             };
@@ -97,6 +102,7 @@ function TimeTracker({ fontColor, updateTrigger }) {
               time_data: {
                 Study: 0,
                 Programming: 0,
+                IBA: 0,
               },
               total_time: 0,
               daily_history: updatedHistory,
@@ -124,6 +130,7 @@ function TimeTracker({ fontColor, updateTrigger }) {
             setTimeData({
               Study: parseInt(data.time_data?.Study) || 0,
               Programming: parseInt(data.time_data?.Programming) || 0,
+              IBA: parseInt(data.time_data?.IBA) || 0,
             });
             setTotalTime(parseInt(data.total_time) || 0);
             setDailyHistory(data.daily_history || []);
@@ -133,6 +140,7 @@ function TimeTracker({ fontColor, updateTrigger }) {
           setLifeTimeData({
             Study: parseInt(data.life_time_data?.Study) || 0,
             Programming: parseInt(data.life_time_data?.Programming) || 0,
+            IBA: parseInt(data.life_time_data?.IBA) || 0,
             total: parseInt(data.life_time_data?.total) || 0
           });
 
@@ -140,12 +148,14 @@ function TimeTracker({ fontColor, updateTrigger }) {
           setWeekData(data.week_data || {
             Study: 0,
             Programming: 0,
+            IBA: 0,
             total: 0,
             lastReset: null
           });
           setMonthData(data.month_data || {
             Study: 0,
             Programming: 0,
+            IBA: 0,
             total: 0,
             lastReset: null
           });
@@ -157,6 +167,7 @@ function TimeTracker({ fontColor, updateTrigger }) {
             const newWeekData = {
               Study: 0,
               Programming: 0,
+              IBA: 0,
               total: 0,
               lastReset: now.toISOString()
             };
@@ -179,6 +190,7 @@ function TimeTracker({ fontColor, updateTrigger }) {
             const newMonthData = {
               Study: 0,
               Programming: 0,
+              IBA: 0,
               total: 0,
               lastReset: now.toISOString()
             };
@@ -218,6 +230,7 @@ function TimeTracker({ fontColor, updateTrigger }) {
         const validTimeData = {
           Study: parseInt(data.time_data?.Study) || 0,
           Programming: parseInt(data.time_data?.Programming) || 0,
+          IBA: parseInt(data.time_data?.IBA) || 0,
         };
         
         setTimeData(validTimeData);
@@ -227,6 +240,7 @@ function TimeTracker({ fontColor, updateTrigger }) {
         const validLifeTimeData = {
           Study: parseInt(data.life_time_data?.Study) || 0,
           Programming: parseInt(data.life_time_data?.Programming) || 0,
+          IBA: parseInt(data.life_time_data?.IBA) || 0,
           total: parseInt(data.life_time_data?.total) || 0
         };
         setLifeTimeData(validLifeTimeData);
@@ -237,6 +251,7 @@ function TimeTracker({ fontColor, updateTrigger }) {
           timeData: {
             Study: parseInt(day.timeData?.Study) || 0,
             Programming: parseInt(day.timeData?.Programming) || 0,
+            IBA: parseInt(day.timeData?.IBA) || 0,
           },
           totalTime: parseInt(day.totalTime) || 0
         }));

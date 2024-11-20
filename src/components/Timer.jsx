@@ -20,7 +20,7 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
   const timerContainerRef = useRef(null);
   const isTimerCompletedRef = useRef(false); // Add ref to track if timer completed
 
-  const labels = ["Study", "Programming"]; // Available labels
+  const labels = ["Study", "Programming", "IBA"]; // Available labels
 
   // Initialize activeLabel ref with the default value
   const activeLabel = useRef(selectedLabel);
@@ -73,6 +73,9 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
     }
   };
 
+  // Add new state for start time
+  const startTimeRef = useRef(null);
+
   const startTimer = () => {
     if (!timerRef.current && !isPaused) {
       const totalMinutes = (parseInt(hours) || 0) * 60 + (parseInt(minutes) || 0);
@@ -83,45 +86,48 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
       initialTimeRef.current = totalMinutes;
       setTimeLeft(totalMinutes);
       setSeconds(0);
-      isTimerCompletedRef.current = false; // Reset completion flag
+      isTimerCompletedRef.current = false;
 
       setHours(String(Math.floor(totalMinutes / 60)));
       setMinutes(String(totalMinutes % 60));
-      console.log('Timer started with label:', activeLabel.current);
-    }
+      
+      // Store the start time
+      startTimeRef.current = Date.now();
 
-    if (!timerRef.current) {
       if (showSeconds) {
         timerRef.current = setInterval(() => {
-          setSeconds(prev => {
-            if (prev === 0) {
-              setTimeLeft(prevTime => {
-                if (prevTime <= 0) {
-                  if (!isTimerCompletedRef.current) {
-                    handleTimerComplete();
-                    isTimerCompletedRef.current = true;
-                  }
-                  return 0;
-                }
-                return prevTime - 1;
-              });
-              return 59;
+          const currentTime = Date.now();
+          const elapsedSeconds = Math.floor((currentTime - startTimeRef.current) / 1000);
+          const totalSeconds = initialTimeRef.current * 60;
+          const remainingSeconds = totalSeconds - elapsedSeconds;
+
+          if (remainingSeconds <= 0) {
+            if (!isTimerCompletedRef.current) {
+              handleTimerComplete();
+              isTimerCompletedRef.current = true;
             }
-            return prev - 1;
-          });
+            setTimeLeft(0);
+            setSeconds(0);
+          } else {
+            setTimeLeft(Math.floor(remainingSeconds / 60));
+            setSeconds(remainingSeconds % 60);
+          }
         }, 1000);
       } else {
         timerRef.current = setInterval(() => {
-          setTimeLeft(prev => {
-            if (prev <= 0) {
-              if (!isTimerCompletedRef.current) {
-                handleTimerComplete();
-                isTimerCompletedRef.current = true;
-              }
-              return 0;
+          const currentTime = Date.now();
+          const elapsedMinutes = Math.floor((currentTime - startTimeRef.current) / 60000);
+          const remainingMinutes = initialTimeRef.current - elapsedMinutes;
+
+          if (remainingMinutes <= 0) {
+            if (!isTimerCompletedRef.current) {
+              handleTimerComplete();
+              isTimerCompletedRef.current = true;
             }
-            return prev - 1;
-          });
+            setTimeLeft(0);
+          } else {
+            setTimeLeft(remainingMinutes);
+          }
         }, 60000);
       }
     }
@@ -132,6 +138,18 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+      // Store the remaining time when paused
+      const currentTime = Date.now();
+      const elapsedSeconds = Math.floor((currentTime - startTimeRef.current) / 1000);
+      const totalSeconds = initialTimeRef.current * 60;
+      const remainingSeconds = totalSeconds - elapsedSeconds;
+      
+      if (remainingSeconds > 0) {
+        setTimeLeft(Math.floor(remainingSeconds / 60));
+        if (showSeconds) {
+          setSeconds(remainingSeconds % 60);
+        }
+      }
       setIsPaused(true);
     }
   };
@@ -176,9 +194,7 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
 
     setTimeLeft(0);
     setSeconds(0);
-    setHours("0");
-    setMinutes("0");
-    setIsPaused(true);
+    setIsPaused(false);
 
     if (soundEnabled) {
       playAlarm();
@@ -481,7 +497,19 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
       {/* Only show CurrentTime in fullscreen mode */}
       {isFullscreen && <CurrentTime fontColor={fontColor} />}
       
-      <div id="timer" style={{ color: fontColor }}>
+      <div id="timer" style={{ 
+        color: isFullscreen ? 'rgba(255, 255, 255, 0.9)' : fontColor,
+        fontWeight: '100',
+        letterSpacing: isFullscreen ? '10px' : '2px',
+        fontSize: isFullscreen ? 'clamp(80px, 15vw, 200px)' : 'clamp(50px, 10vw, 150px)',
+        fontFamily: "'Roboto', sans-serif",
+        textShadow: isFullscreen ? '0 0 20px rgba(255, 255, 255, 0.5)' : 'none',
+        transition: 'all 0.3s ease',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '5px'
+      }}>
         {formatTime()}
       </div>
       <div className="time-input-container">
