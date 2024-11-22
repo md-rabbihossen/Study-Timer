@@ -163,7 +163,7 @@ function TimeTracker({ fontColor, updateTrigger }) {
           // Check for week reset (Thursday midnight)
           const now = new Date();
           const lastWeekReset = data.week_data?.lastReset ? new Date(data.week_data.lastReset) : null;
-          if (!lastWeekReset || now.getDay() === 5 && lastWeekReset.getDay() !== 5) {
+          if (!lastWeekReset || (now.getDay() === 4 && (!lastWeekReset || lastWeekReset.getDay() !== 4))) {
             const newWeekData = {
               Study: 0,
               Programming: 0,
