@@ -77,22 +77,28 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
   const startTimeRef = useRef(null);
 
   const startTimer = () => {
-    if (!timerRef.current && !isPaused) {
-      const totalMinutes = (parseInt(hours) || 0) * 60 + (parseInt(minutes) || 0);
-      if (totalMinutes <= 0) {
-        return;
-      }
-      activeLabel.current = selectedLabel;
-      initialTimeRef.current = totalMinutes;
-      setTimeLeft(totalMinutes);
-      setSeconds(0);
-      isTimerCompletedRef.current = false;
-
-      setHours(String(Math.floor(totalMinutes / 60)));
-      setMinutes(String(totalMinutes % 60));
+    if (!timerRef.current) {
+      let totalMinutes;
       
-      // Store the start time
-      startTimeRef.current = Date.now();
+      // If paused, use current timeLeft value, otherwise use input values
+      if (isPaused) {
+        totalMinutes = timeLeft + (seconds / 60);
+        startTimeRef.current = Date.now() - ((initialTimeRef.current * 60 - totalMinutes * 60) * 1000);
+      } else {
+        totalMinutes = (parseInt(hours) || 0) * 60 + (parseInt(minutes) || 0);
+        if (totalMinutes <= 0) return;
+        
+        activeLabel.current = selectedLabel;
+        initialTimeRef.current = totalMinutes;
+        setTimeLeft(totalMinutes);
+        setSeconds(0);
+        startTimeRef.current = Date.now();
+        
+        setHours(String(Math.floor(totalMinutes / 60)));
+        setMinutes(String(totalMinutes % 60));
+      }
+      
+      isTimerCompletedRef.current = false;
 
       if (showSeconds) {
         timerRef.current = setInterval(() => {
@@ -555,31 +561,49 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
         </div>
       </div>
       <div className="buttons">
-        <button 
-          id="start-btn" 
-          onClick={startTimer}
-          style={{ 
-            color: fontColor,
-            fontSize: 'clamp(12px, 2vw, 16px)',
-            backgroundColor: isFullscreen ? 'transparent' : 'transparent',
-          }}
-        >
-          {isPaused ? 
-            <><i className="fas fa-play"></i> Resume</> : 
-            <><i className="fas fa-play"></i> Start</>
-          }
-        </button>
-        <button 
-          id="pause-btn" 
-          onClick={pauseTimer}
-          style={{ 
-            color: fontColor,
-            fontSize: 'clamp(12px, 2vw, 16px)',
-            backgroundColor: isFullscreen ? 'transparent' : 'transparent',
-          }}
-        >
-          <i className="fas fa-pause"></i> Pause
-        </button>
+        {!timerRef.current && !isPaused && (
+          // Show Start button only when timer is not running and not paused
+          <button 
+            id="start-btn" 
+            onClick={startTimer}
+            style={{ 
+              color: fontColor,
+              fontSize: 'clamp(12px, 2vw, 16px)',
+              backgroundColor: isFullscreen ? 'transparent' : 'transparent',
+            }}
+          >
+            <i className="fas fa-play"></i> Start
+          </button>
+        )}
+        
+        {isPaused ? (
+          // Show Resume button when paused
+          <button 
+            id="resume-btn" 
+            onClick={startTimer}
+            style={{ 
+              color: fontColor,
+              fontSize: 'clamp(12px, 2vw, 16px)',
+              backgroundColor: isFullscreen ? 'transparent' : 'transparent',
+            }}
+          >
+            <i className="fas fa-play"></i> Resume
+          </button>
+        ) : timerRef.current && (
+          // Show Pause button when timer is running
+          <button 
+            id="pause-btn" 
+            onClick={pauseTimer}
+            style={{ 
+              color: fontColor,
+              fontSize: 'clamp(12px, 2vw, 16px)',
+              backgroundColor: isFullscreen ? 'transparent' : 'transparent',
+            }}
+          >
+            <i className="fas fa-pause"></i> Pause
+          </button>
+        )}
+        
         <button 
           id="reset-btn" 
           onClick={resetTimer}
@@ -591,6 +615,7 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
         >
           <i className="fas fa-redo"></i> Reset
         </button>
+        
         <button 
           id="fullscreen-btn" 
           onClick={toggleFullscreen}
