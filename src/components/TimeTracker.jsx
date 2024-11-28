@@ -163,7 +163,20 @@ function TimeTracker({ fontColor, updateTrigger }) {
           // Check for week reset (Thursday midnight)
           const now = new Date();
           const lastWeekReset = data.week_data?.lastReset ? new Date(data.week_data.lastReset) : null;
-          if (!lastWeekReset || (now.getDay() === 4 && (!lastWeekReset || lastWeekReset.getDay() !== 4))) {
+          const isThursdayMidnight = now.getDay() === 5 && now.getHours() === 0 && now.getMinutes() === 0;
+          const needsWeekReset = !lastWeekReset || 
+            (isThursdayMidnight && (!lastWeekReset || lastWeekReset.getDay() !== 5));
+
+          if (needsWeekReset) {
+            // Save the current week's data to history first
+            const currentWeekData = data.week_data || {
+              Study: 0,
+              Programming: 0,
+              IBA: 0,
+              total: 0
+            };
+
+            // Create new week data
             const newWeekData = {
               Study: 0,
               Programming: 0,
@@ -171,6 +184,8 @@ function TimeTracker({ fontColor, updateTrigger }) {
               total: 0,
               lastReset: now.toISOString()
             };
+
+            // Update the states and save
             setWeekData(newWeekData);
             await syncData.saveTimeTracker(
               data.time_data,

@@ -161,17 +161,25 @@ function Timer({ fontColor, backgroundColor, showSeconds, soundEnabled, onSessio
   };
 
   const resetTimer = async () => {
-    const elapsedMinutes = initialTimeRef.current - timeLeft - (seconds / 60);
+    // Calculate elapsed time more accurately
+    let elapsedMinutes = 0;
     
-    if (timerRef.current && elapsedMinutes > 0 && !isTimerCompletedRef.current) {
-      try {
-        await saveSession(elapsedMinutes, activeLabel.current);
-        console.log('Reset timer - saving session:', { 
-          elapsedMinutes, 
-          label: activeLabel.current 
-        });
-      } catch (error) {
-        console.error('Error saving session on reset:', error);
+    if (timerRef.current || isPaused) {
+      const totalMinutesSet = initialTimeRef.current;
+      const currentMinutesLeft = timeLeft + (seconds / 60);
+      elapsedMinutes = totalMinutesSet - currentMinutesLeft;
+      
+      // Only save if there was actual elapsed time and timer wasn't completed
+      if (elapsedMinutes > 0 && !isTimerCompletedRef.current) {
+        try {
+          await saveSession(elapsedMinutes, activeLabel.current);
+          console.log('Reset timer - saving session:', { 
+            elapsedMinutes, 
+            label: activeLabel.current 
+          });
+        } catch (error) {
+          console.error('Error saving session on reset:', error);
+        }
       }
     }
 
