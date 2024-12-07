@@ -160,23 +160,21 @@ function TimeTracker({ fontColor, updateTrigger }) {
             lastReset: null
           });
 
-          // Check for week reset (Thursday midnight)
+          // Check for week reset (Thursday midnight to Friday)
           const now = new Date();
           const lastWeekReset = data.week_data?.lastReset ? new Date(data.week_data.lastReset) : null;
+          
+          // Check if it's Thursday midnight (which means it's the start of Friday)
           const isThursdayMidnight = now.getDay() === 5 && now.getHours() === 0 && now.getMinutes() === 0;
+          
+          // Check if we need to reset the week data
           const needsWeekReset = !lastWeekReset || 
-            (isThursdayMidnight && (!lastWeekReset || lastWeekReset.getDay() !== 5));
+            (now.getDay() === 5 && (!lastWeekReset || lastWeekReset.getDay() !== 5)) || // Reset on Friday
+            (now.getTime() - lastWeekReset.getTime() > 7 * 24 * 60 * 60 * 1000); // Fallback: Reset if more than 7 days passed
 
           if (needsWeekReset) {
-            // Save the current week's data to history first
-            const currentWeekData = data.week_data || {
-              Study: 0,
-              Programming: 0,
-              IBA: 0,
-              total: 0
-            };
-
-            // Create new week data
+            console.log('Resetting week data');
+            // Create new week data with all zeros
             const newWeekData = {
               Study: 0,
               Programming: 0,
@@ -231,12 +229,13 @@ function TimeTracker({ fontColor, updateTrigger }) {
     // Add midnight check
     const checkMidnight = () => {
       const now = new Date();
+      // Check both for midnight reset and Thursday midnight (week reset)
       if (now.getHours() === 0 && now.getMinutes() === 0) {
         loadTimeTrackerData(); // Reload data at midnight
       }
     };
 
-    // Check every minute for midnight
+    // Check every minute
     const midnightInterval = setInterval(checkMidnight, 60000);
 
     const subscription = syncData.subscribeToTimeTracker((data) => {
