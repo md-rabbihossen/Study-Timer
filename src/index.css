@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400&display=swap");
 
 body {
   display: flex;
@@ -6,9 +6,110 @@ body {
   justify-content: center;
   min-height: 100vh;
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   background-color: var(--background-color, #ffffff);
-  color: var(--font-color, #37352F);
+  color: var(--font-color, #37352f);
+}
+
+/* 1. Fix background image bug: always remove background image from body when not in fullscreen */
+body:not(:fullscreen) {
+  background-image: none !important;
+  background-size: initial !important;
+  background-position: initial !important;
+  background-repeat: initial !important;
+  background-attachment: initial !important;
+}
+
+/* 2. Layout and sizing for timer, todo, and statistics */
+.app {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  width: 100vw;
+  box-sizing: border-box;
+}
+
+.timer-container {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 400px;
+  max-width: 700px;
+  margin: 40px 20px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 24px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.08);
+  padding: 32px 24px;
+}
+
+.todo-container {
+  flex: 1;
+  position: static;
+  transform: none;
+  width: 320px;
+  max-width: 340px;
+  min-width: 240px;
+  max-height: 80vh;
+  margin: 40px 0 40px 40px;
+  padding: 24px 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 18px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+}
+
+.time-tracker {
+  flex: 1;
+  position: static;
+  transform: none;
+  width: 320px;
+  max-width: 340px;
+  min-width: 240px;
+  max-height: 80vh;
+  margin: 40px 40px 40px 0;
+  padding: 24px 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 18px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+}
+
+@media (max-width: 1200px) {
+  .app {
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+  }
+  .timer-container,
+  .todo-container,
+  .time-tracker {
+    margin: 24px 0;
+    width: 90vw;
+    max-width: 98vw;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .app {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0;
+  }
+  .timer-container,
+  .todo-container,
+  .time-tracker {
+    margin: 16px 0;
+    width: 98vw;
+    max-width: 100vw;
+    min-width: 0;
+    border-radius: 12px;
+    padding: 12px 4px;
+  }
 }
 
 .current-time {
@@ -36,7 +137,7 @@ body {
 #clock {
   font-size: 1px !important;
   text-align: center;
-  font-family: 'Roboto', sans-serif;
+  font-family: "Roboto", sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -52,6 +153,28 @@ body {
   font-size: 80px !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@media (max-width: 900px) {
+  #clock {
+    min-width: 90vw;
+    max-width: 100vw;
+    padding: 24px 4vw !important;
+  }
+  #timer {
+    font-size: clamp(48px, 18vw, 180px) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  #clock {
+    min-width: 98vw;
+    max-width: 100vw;
+    padding: 8px 2vw !important;
+  }
+  #timer {
+    font-size: clamp(32px, 22vw, 120px) !important;
+  }
 }
 
 #minutes-input {
@@ -781,7 +904,8 @@ kbd {
     font-size: 18px; /* Adjust current time size */
   }
 
-  .todo-container, .time-tracker {
+  .todo-container,
+  .time-tracker {
     width: 100%; /* Make containers full width */
     padding: 10px; /* Adjust padding */
   }
@@ -792,7 +916,7 @@ kbd {
   }
 
   .buttons button {
-    font-size: 17px!important; /* Adjust button font size */
+    font-size: 17px !important; /* Adjust button font size */
     padding: 6px 12px;
     margin-bottom: 17px !important; /* Adjust button padding */
   }
@@ -807,7 +931,8 @@ kbd {
     font-size: 16px; /* Further adjust current time size */
   }
 
-  .todo-container, .time-tracker {
+  .todo-container,
+  .time-tracker {
     padding: 5px; /* Further adjust padding */
   }
 
@@ -996,7 +1121,7 @@ kbd {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center
+  justify-content: center;
 }
 
 #clock:fullscreen input,
@@ -1097,7 +1222,8 @@ kbd {
   gap: 1rem;
 }
 
-.generate-btn, .login-btn {
+.generate-btn,
+.login-btn {
   width: 100%;
   padding: 12px;
   border: none;
@@ -1109,7 +1235,8 @@ kbd {
   transition: background 0.3s;
 }
 
-.generate-btn:hover, .login-btn:hover {
+.generate-btn:hover,
+.login-btn:hover {
   background: #3367d6;
 }
 
@@ -1123,7 +1250,7 @@ kbd {
 
 .or-divider::before,
 .or-divider::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
   background: #ddd;
@@ -1148,7 +1275,7 @@ kbd {
   .desktop-menu {
     display: none !important;
   }
-  
+
   .mobile-menu-button {
     display: block !important;
     margin-right: 30px !important;
@@ -1159,7 +1286,7 @@ kbd {
   .mobile-menu {
     display: none !important;
   }
-  
+
   .mobile-menu-button {
     display: none !important;
   }
@@ -1208,9 +1335,9 @@ body {
   justify-content: center;
   min-height: 100vh;
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   background-color: var(--background-color, #ffffff);
-  color: var(--font-color, #37352F);
+  color: var(--font-color, #37352f);
 }
 
 /* Timer styles */
@@ -1224,7 +1351,6 @@ body {
   margin: 2rem auto;
   max-width: 600px;
 }
-
 
 .time-input-container {
   display: flex;
@@ -1327,7 +1453,9 @@ body {
     padding: 1rem;
   }
 
-  #clock, .todo-container, .time-tracker {
+  #clock,
+  .todo-container,
+  .time-tracker {
     margin: 1rem auto;
     padding: 1.5rem;
   }
@@ -1375,7 +1503,7 @@ body {
   font-weight: 200;
   letter-spacing: 2px;
   margin: 1rem 0;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 /* Update input styles to match the slim look */
@@ -1409,7 +1537,7 @@ body {
 #clock:fullscreen .time-input-label,
 #clock:fullscreen select {
   font-weight: lighter !important;
-  opacity: 0.0;
+  opacity: 0;
 }
 
 @media (max-width: 768px) {
@@ -1420,17 +1548,16 @@ body {
     opacity: 0.5 !important;
     text-shadow: 0 0 10px rgba(214, 208, 208, 0.1);
   }
-  
+
   #clock:fullscreen {
     font-weight: 200 !important;
-  
   }
   #clock:fullscreen .buttons button,
   #clock:fullscreen .time-input-group input,
   #clock:fullscreen .time-input-label,
   #clock:fullscreen select {
     font-weight: lighter !important;
-    opacity: 0 ;
+    opacity: 0;
   }
   #clock:fullscreen #fullscreen-btn {
     font-weight: lighter !important;
@@ -1461,3 +1588,24 @@ body {
   border-radius: 3px;
 }
 
+/* Moon icon (focus mode) button styles for home page timer controls */
+.buttons button:has(.fa-moon) {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-right: 8px;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  box-shadow: none;
+}
+.buttons button:has(.fa-moon):hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid #fff;
+}
