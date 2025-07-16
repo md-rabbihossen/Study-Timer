@@ -496,6 +496,32 @@ function Timer({
     };
   }, []);
 
+  // Add state for current time display
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every second when in fullscreen
+  useEffect(() => {
+    let interval;
+    if (isFullscreen) {
+      interval = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isFullscreen]);
+
+  // Helper to format current time as 03:58 PM
+  function formatCurrentTime12h() {
+    let hours = currentTime.getHours();
+    const minutes = String(currentTime.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    return `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
+  }
+
   // 1. Always show only icons for timer control buttons (remove text everywhere)
   // 2. Format timer as MM:SS if < 60 min, else HH:MM:SS in fullscreen if hours set
   function formatTimeDisplay() {
@@ -549,6 +575,29 @@ function Timer({
       }}
       ref={timerContainerRef}
     >
+      {/* Show current time at top right in fullscreen mode */}
+      {isFullscreen && (
+        <div
+          style={{
+            position: "fixed",
+            top: 16,
+            right: 24,
+            color: "#fff",
+            fontSize: "1.1rem",
+            fontWeight: 400,
+            letterSpacing: "1px",
+            zIndex: 2000,
+            background: "none",
+            borderRadius: "8px",
+            padding: "4px 12px",
+            fontFamily: "monospace",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            userSelect: "none",
+          }}
+        >
+          {formatCurrentTime12h()}
+        </div>
+      )}
       {/* Timer title (hidden in fullscreen) */}
       <h2
         id="timer-title"
@@ -579,7 +628,9 @@ function Timer({
               ? "clamp(90px, 16vw, 210px)"
               : "clamp(50px, 10vw, 150px)",
           fontFamily: "'Roboto', sans-serif",
-          textShadow: isFullscreen ? "0 0 40px #000" : "none",
+          textShadow: isFullscreen
+            ? "0 0 40px #000, 0 0 8px #000, 0 0 2px #000"
+            : "none",
           transition: "all 0.3s cubic-bezier(.4,2,.6,1)",
           display: "flex",
           alignItems: "center",
@@ -593,6 +644,8 @@ function Timer({
           zIndex: 2,
           margin: isFullscreen && isBlackBg ? 0 : undefined,
           padding: isFullscreen && isBlackBg ? 0 : undefined,
+          background: "none",
+          borderRadius: undefined,
           ...(isFullscreen && isBlackBg
             ? {
                 width: "100vw",

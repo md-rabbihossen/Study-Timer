@@ -1520,12 +1520,17 @@ body {
 }
 
 /* Update fullscreen specific styles */
-#clock:fullscreen #timer,
+/* #clock:fullscreen #timer,
 #clock:fullscreen .current-time {
   font-weight: lighter !important;
   letter-spacing: 0px !important;
   opacity: 0.5 !important;
-  text-shadow: 0 0 10px rgba(214, 208, 208, 0.1);
+  text-shadow: 0 0 10px rgba(214, 208, 208, 0.1);} */
+
+#clock:fullscreen #timer {
+  color: #fff !important;
+  opacity: 0.6 !important;
+  text-shadow: 0 0 10px #000, 0 0 2px #000;
 }
 
 #clock:fullscreen {
